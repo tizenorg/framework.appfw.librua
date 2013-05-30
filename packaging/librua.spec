@@ -1,7 +1,7 @@
 Name:       librua
 Summary:    Recently used application
-Version:    0.1.0
-Release:    34
+Version:    0.1.1
+Release:    1
 Group:      Application Framework/Libraries
 License:    Apache-2.0
 Source0:    librua-%{version}.tar.gz

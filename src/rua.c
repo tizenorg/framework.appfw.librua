@@ -34,6 +34,14 @@
 #include "db-schema.h"
 #include "perf-measure.h"
 
+#include <dlog.h>
+
+#ifdef LOG_TAG
+#undef LOG_TAG
+#endif
+
+#define LOG_TAG "RUA"
+
 #define RUA_DB_PATH	"/opt/dbspace"
 #define RUA_DB_NAME	".rua.db"
 #define RUA_HISTORY	"rua_history"
@@ -53,8 +61,12 @@ int rua_clear_history(void)
 	int r;
 	char query[QUERY_MAXLEN];
 
-	if (_db == NULL)
+	if (_db == NULL) {
+		LOGE("rua is not inited.");
 		return -1;
+	}
+
+	LOGD("rua clear history is invoked");
 
 	snprintf(query, QUERY_MAXLEN, "delete from %s;", RUA_HISTORY);
 
@@ -68,11 +80,17 @@ int rua_delete_history_with_pkgname(char *pkg_name)
 	int r;
 	char query[QUERY_MAXLEN];
 
-	if (_db == NULL)
+	if (_db == NULL) {
+		LOGE("rua is not inited.");
 		return -1;
+	}
 
-	if (pkg_name == NULL)
+	if (pkg_name == NULL) {
+		LOGE("pkg_name is null");
 		return -1;
+	}
+
+	LOGD("rua delete history with name(%s) is invoked", pkg_name);
 
 	snprintf(query, QUERY_MAXLEN, "delete from %s where pkg_name = '%s';",
 		RUA_HISTORY, pkg_name);
@@ -87,11 +105,17 @@ int rua_delete_history_with_apppath(char *app_path)
 	int r;
 	char query[QUERY_MAXLEN];
 
-	if (_db == NULL)
+	if (_db == NULL) {
+		LOGE("rua is not inited.");
 		return -1;
+	}
 
-	if (app_path == NULL)
+	if (app_path == NULL) {
+		LOGE("app_path is null");
 		return -1;
+	}
+
+	LOGD("rua delete history with path(%s) is invoked", app_path);
 
 	snprintf(query, QUERY_MAXLEN, "delete from %s where app_path = '%s';",
 		RUA_HISTORY, app_path);
@@ -111,11 +135,17 @@ int rua_add_history(struct rua_rec *rec)
 	unsigned int timestamp;
 	timestamp = PERF_MEASURE_START("RUA");
 
-	if (_db == NULL)
-		return -1;
+	LOGD("rua_add_history invoked");
 
-	if (rec == NULL)
+	if (_db == NULL) {
+		LOGE("rua is not inited.");
 		return -1;
+	}
+
+	if (rec == NULL) {
+		LOGE("rec is null");
+		return -1;
+	}
 
 	snprintf(query, QUERY_MAXLEN,
 		"select count(*) from %s where pkg_name = '%s';", RUA_HISTORY,
@@ -123,6 +153,7 @@ int rua_add_history(struct rua_rec *rec)
 
 	r = sqlite3_prepare(_db, query, sizeof(query), &stmt, NULL);
 	if (r != SQLITE_OK) {
+		LOGE("query prepare error(%d)", r);
 		return -1;
 	}
 
@@ -140,17 +171,17 @@ int rua_add_history(struct rua_rec *rec)
 			RUA_HISTORY,
 			rec->pkg_name ? rec->pkg_name : "",
 			rec->app_path ? rec->app_path : "",
-			rec->arg ? rec->arg : "", time(NULL));
+			rec->arg ? rec->arg : "", (int)time(NULL));
 	else
 		/* update */
 		snprintf(query, QUERY_MAXLEN,
 			"update %s set arg='%s', launch_time='%d' where pkg_name = '%s';",
 			RUA_HISTORY,
-			rec->arg ? rec->arg : "", time(NULL), rec->pkg_name);
+			rec->arg ? rec->arg : "", (int)time(NULL), rec->pkg_name);
 
 	r = __exec(_db, query);
 	if (r == -1) {
-		printf("[RUA ADD HISTORY ERROR] %s\n", query);
+		LOGE("[RUA ADD HISTORY ERROR] %s\n", query);
 		return -1;
 	}
 
@@ -166,12 +197,20 @@ int rua_history_load_db(char ***table, int *nrows, int *ncols)
 	char *db_err = NULL;
 	char **db_result = NULL;
 
-	if (table == NULL)
+	LOGD("rua_history_load_db invoked");
+
+	if (table == NULL) {
+		LOGE("table is null");
 		return -1;
-	if (nrows == NULL)
+	}
+	if (nrows == NULL) {
+		LOGE("nrows is null");
 		return -1;
-	if (ncols == NULL)
+	}
+	if (ncols == NULL) {
+		LOGE("ncols is null");
 		return -1;
+	}
 
 	snprintf(query, QUERY_MAXLEN,
 		 "select * from %s order by launch_time desc;", RUA_HISTORY);
@@ -180,8 +219,10 @@ int rua_history_load_db(char ***table, int *nrows, int *ncols)
 
 	if (r == SQLITE_OK)
 		*table = db_result;
-	else
+	else {
+		LOGE("get table error(%d)", r);
 		sqlite3_free_table(db_result);
+	}
 
 	return r;
 }
@@ -202,12 +243,20 @@ int rua_history_get_rec(struct rua_rec *rec, char **table, int nrows, int ncols,
 	char **db_result = NULL;
 	char *tmp = NULL;
 
-	if (rec == NULL)
+	LOGD("rua_history_get_rec invoked");
+
+	if (rec == NULL) {
+		LOGE("rec is null");
 		return -1;
-	if (table == NULL)
+	}
+	if (table == NULL) {
+		LOGE("table is null");
 		return -1;
-	if (row >= nrows)
+	}
+	if (row >= nrows) {
+		LOGE("row is bigger than nrows");
 		return -1;
+	}
 
 	db_result = table + ((row + 1) * ncols);
 
@@ -245,11 +294,16 @@ int rua_is_latest_app(const char *pkg_name)
 	sqlite3_stmt *stmt;
 	const unsigned char *ct;
 
-	if (!pkg_name || !_db)
+	LOGD("rua_is_latest_app invoked");
+
+	if (!pkg_name || !_db) {
+		LOGE("invalid param . init error");
 		return -1;
+	}
 
 	r = sqlite3_prepare(_db, Q_LATEST, sizeof(Q_LATEST), &stmt, NULL);
 	if (r != SQLITE_OK) {
+		LOGE("query prepare error(%d)", r);
 		return -1;
 	}
 
@@ -257,11 +311,12 @@ int rua_is_latest_app(const char *pkg_name)
 	if (r == SQLITE_ROW) {
 		ct = sqlite3_column_text(stmt, 0);
 		if (ct == NULL || ct[0] == '\0') {
+			LOGE("text is null");
 			sqlite3_finalize(stmt);
 			return -1;
 		}
 
-		if (strncmp(pkg_name, ct, strlen(pkg_name)) == 0) {
+		if (strncmp(pkg_name, (const char*)ct, strlen(pkg_name)) == 0) {
 			sqlite3_finalize(stmt);
 			return 0;
 		}
@@ -276,6 +331,8 @@ int rua_init(void)
 	unsigned int timestamp;
 	timestamp = PERF_MEASURE_START("RUA");
 
+	LOGD("rua_init invoked");
+
 	if (_db) {
 		return 0;
 	}
@@ -284,8 +341,10 @@ int rua_init(void)
 	snprintf(defname, sizeof(defname), "%s/%s", RUA_DB_PATH, RUA_DB_NAME);
 	_db = __db_init(defname);
 
-	if (_db == NULL)
+	if (_db == NULL) {
+		LOGE("db handle is null");
 		return -1;
+	}
 
 	PERF_MEASURE_END("RUA", timestamp);
 
@@ -296,6 +355,8 @@ int rua_fini(void)
 {
 	unsigned int timestamp;
 	timestamp = PERF_MEASURE_START("RUA");
+
+	LOGD("rua_fini invoked");
 
 	if (_db) {
 		db_util_close(_db);
@@ -317,6 +378,7 @@ static int __exec(sqlite3 *db, char *query)
 	r = sqlite3_exec(db, query, NULL, NULL, &errmsg);
 
 	if (r != SQLITE_OK) {
+		LOGE("query error(%d)(%s)", r, errmsg);
 		sqlite3_free(errmsg);
 		return -1;
 	}
@@ -329,8 +391,10 @@ static int __create_table(sqlite3 *db)
 	int r;
 
 	r = __exec(db, CREATE_RUA_HISTORY_TABLE);
-	if (r == -1)
+	if (r == -1) {
+		LOGE("create table error");
 		return -1;
+	}
 
 	return 0;
 }
@@ -342,12 +406,14 @@ static sqlite3 *__db_init(char *root)
 
 	r = db_util_open(root, &db, 0);
 	if (r) {
+		LOGE("db util open error(%d)", r);
 		db_util_close(db);
 		return NULL;
 	}
 
 	r = __create_table(db);
 	if (r) {
+		LOGE("create table error(%d)", r);
 		db_util_close(db);
 		return NULL;
 	}
