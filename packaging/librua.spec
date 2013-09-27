@@ -1,6 +1,6 @@
 Name:       librua
 Summary:    Recently used application
-Version:    0.1.1
+Version:    0.1.2
 Release:    1
 Group:      Application Framework/Libraries
 License:    Apache-2.0
@@ -33,6 +33,8 @@ make %{?jobs:-j%jobs}
 
 %install
 %make_install
+mkdir -p %{buildroot}/usr/share/license
+install LICENSE %{buildroot}/usr/share/license/%{name}
 
 %post
 /sbin/ldconfig
@@ -53,6 +55,7 @@ chsmack -a rua::db /opt/dbspace/.rua.db-journal
 %defattr(-,root,root,-)
 %config(missingok) /opt/share/rua_db.sql
 %{_libdir}/librua.so.*
+/usr/share/license/%{name}
 
 %files devel
 %defattr(-,root,root,-)
