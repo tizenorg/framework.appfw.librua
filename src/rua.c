@@ -85,7 +85,10 @@ int rua_clear_history(void)
 int rua_delete_history_with_pkgname(char *pkg_name)
 {
 	int r;
-	char* query = NULL;
+	char query[QUERY_MAXLEN];
+	sqlite3_stmt *stmt;
+
+	LOGD("rua_delete_history_with_pkgname start");
 
 	if (_db == NULL)
 		return -1;
@@ -93,17 +96,32 @@ int rua_delete_history_with_pkgname(char *pkg_name)
 	if (pkg_name == NULL)
 		return -1;
 
-	query = sqlite3_mprintf("delete from %s where pkg_name = %Q;",
-		RUA_HISTORY, pkg_name);
+	sqlite3_snprintf(QUERY_MAXLEN, query, "delete from %s where pkg_name = ?",
+		RUA_HISTORY);
 
-	r = __exec(_db, query);
-	if (r == -1) {
-		LOGE("rua_delete_history_with_pkgname error");
-		sqlite3_free(query);
+	r = sqlite3_prepare(_db, query, sizeof(query), &stmt, NULL);
+	if (r != SQLITE_OK) {
+		LOGE("sqlite3_prepare error(%d)", r);
 		return -1;
 	}
 
-	sqlite3_free(query);
+	r = sqlite3_bind_text(stmt, 1, pkg_name, strlen(pkg_name), SQLITE_STATIC);
+	if(r != SQLITE_OK) {
+		LOGE("pkg name bind error(%d) \n", r);
+		sqlite3_finalize(stmt);
+		return -1;
+	}
+
+	r = sqlite3_step(stmt);
+	if (r != SQLITE_DONE) {
+		LOGE("delete history error(%d/%d)", r, sqlite3_extended_errcode(_db));
+		sqlite3_finalize(stmt);
+		return -1;
+	}
+
+	sqlite3_finalize(stmt);
+
+	LOGD("rua_delete_history_with_pkgname ok");
 
 	return r;
 }
@@ -111,7 +129,10 @@ int rua_delete_history_with_pkgname(char *pkg_name)
 int rua_delete_history_with_apppath(char *app_path)
 {
 	int r;
-	char* query=NULL;
+	char query[QUERY_MAXLEN];
+	sqlite3_stmt *stmt;
+
+	LOGD("rua_delete_history_with_apppath start");
 
 	if (_db == NULL)
 		return -1;
@@ -119,17 +140,32 @@ int rua_delete_history_with_apppath(char *app_path)
 	if (app_path == NULL)
 		return -1;
 
-	query = sqlite3_mprintf("delete from %s where app_path = %Q;",
-		RUA_HISTORY, app_path);
+	sqlite3_snprintf(QUERY_MAXLEN, query,"delete from %s where app_path = ?",
+		RUA_HISTORY);
 
-	r = __exec(_db, query);
-	if (r == -1) {
-		LOGE("rua_delete_history_with_apppath error");
-		sqlite3_free(query);
+	r = sqlite3_prepare(_db, query, sizeof(query), &stmt, NULL);
+	if (r != SQLITE_OK) {
+		LOGE("sqlite3_prepare error(%d)", r);
 		return -1;
 	}
 
-	sqlite3_free(query);
+	r = sqlite3_bind_text(stmt, 1, app_path, strlen(app_path), SQLITE_STATIC);
+	if(r != SQLITE_OK) {
+		LOGE("pkg name bind error(%d) \n", r);
+		sqlite3_finalize(stmt);
+		return -1;
+	}
+
+	r = sqlite3_step(stmt);
+	if (r != SQLITE_DONE) {
+		LOGE("delete history error(%d/%d)", r, sqlite3_extended_errcode(_db));
+		sqlite3_finalize(stmt);
+		return -1;
+	}
+
+	sqlite3_finalize(stmt);
+
+	LOGD("rua_delete_history_with_apppath ok");
 
 	return r;
 }
@@ -137,67 +173,86 @@ int rua_delete_history_with_apppath(char *app_path)
 int rua_add_history(struct rua_rec *rec)
 {
 	int r;
-	int cnt = 0;
-	char* query=NULL;
-	sqlite3_stmt *stmt;
+	char query[QUERY_MAXLEN];
+	sqlite3_stmt *stmt = NULL;
+
+	LOGD("rua_add_history start");
 
 	unsigned int timestamp;
 	timestamp = PERF_MEASURE_START("RUA");
 
-	if (_db == NULL)
+	if (_db == NULL) {
+		LOGE("rua is not initialized");
 		return -1;
+	}	
 
-	if (rec == NULL)
-		return -1;
-
-	query = sqlite3_mprintf(
-		"select count(*) from %s where pkg_name = %Q;", RUA_HISTORY,
-		rec->pkg_name);
-
-	r = sqlite3_prepare(_db, query, strlen(query), &stmt, NULL);
-	if (r != SQLITE_OK) {
-		sqlite3_free(query);
-		LOGE("sqlite3_prepare error(%d)", r);
+	if (rec == NULL) {
+		LOGE("input param is null");
 		return -1;
 	}
 
-	sqlite3_free(query);
-	query = NULL;
+	if(rec->pkg_name == NULL) {
+		LOGE("pkg name is null");
+		return -1;
+	}
+
+	if(rec->app_path == NULL) {
+		LOGE("app path is null");
+		return -1;
+	}
+
+	sqlite3_snprintf(QUERY_MAXLEN, query,
+		"REPLACE INTO %s(pkg_name,app_path,arg,launch_time) VALUES (?,?,?,?)",
+		RUA_HISTORY);
+
+	r = sqlite3_prepare(_db, query, sizeof(query), &stmt, NULL);
+	if (r != SQLITE_OK) {
+		LOGE("sqlite3_prepare error(%d , %d, %s)", r, sqlite3_extended_errcode(_db), sqlite3_errmsg(_db));
+		goto func_err;
+	}
+
+	r = sqlite3_bind_text(stmt, 1, rec->pkg_name, strlen(rec->pkg_name), SQLITE_STATIC);
+	if(r != SQLITE_OK) {
+		LOGE("pkg name bind error(%d) \n", r);
+		goto func_err;
+	}
+
+	r = sqlite3_bind_text(stmt, 2, rec->app_path, strlen(rec->app_path), SQLITE_STATIC);
+	if(r != SQLITE_OK) {
+		LOGE("pkg name bind error(%d) \n", r);
+		goto func_err;
+	}
+
+	r = sqlite3_bind_text(stmt, 3, rec->arg ? rec->arg : "", -1, SQLITE_STATIC);
+	if(r != SQLITE_OK) {
+		LOGE("arg bind error(%d) \n", r);
+		goto func_err;
+	}
+
+	r = sqlite3_bind_int(stmt, 4, (int)time(NULL));
+	if(r != SQLITE_OK) {
+		LOGE("arg bind error(%d) \n", r);
+		goto func_err;
+	}
 
 	r = sqlite3_step(stmt);
-	if (r == SQLITE_ROW) {
-		cnt = sqlite3_column_int(stmt, 0);
+	if (r != SQLITE_DONE) {
+		LOGE("step error(%d) \n", r);
+		goto func_err;
 	}
 	sqlite3_finalize(stmt);
 
-	if (cnt == 0)
-		/* insert */
-		query = sqlite3_mprintf(
-			"insert into %s ( pkg_name, app_path, arg, launch_time ) "
-			" values ( %Q, %Q, %Q, %d ) ",
-			RUA_HISTORY,
-			rec->pkg_name ? rec->pkg_name : "",
-			rec->app_path ? rec->app_path : "",
-			rec->arg ? rec->arg : "", (int)time(NULL));
-	else
-		/* update */
-		query = sqlite3_mprintf(
-			"update %s set arg=%Q, launch_time='%d' where pkg_name = %Q;",
-			RUA_HISTORY,
-			rec->arg ? rec->arg : "", (int)time(NULL), rec->pkg_name);
-
-	r = __exec(_db, query);
-	if (r == -1) {
-		sqlite3_free(query);
-		LOGE("rua_add_history error");
-		return -1;
-	}
-
-	sqlite3_free(query);
-
 	PERF_MEASURE_END("RUA", timestamp);
 
+	LOGD("rua_add_history ok");
+
 	return r;
+
+func_err :
+	if(stmt)
+		sqlite3_finalize(stmt);
+
+	return -1;
 }
 
 int rua_history_load_db(char ***table, int *nrows, int *ncols)

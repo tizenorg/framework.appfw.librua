@@ -1,7 +1,7 @@
 
 Name:       librua
 Summary:    Recently used application
-Version:    0.1.5
+Version:    0.1.8
 Release:    1
 Group:      System/Libraries
 License:    Apache License, Version 2.0
@@ -34,10 +34,10 @@ Recently used application library (devel)
 
 
 %build
-%if 0%{?tizen_build_binary_release_type_eng}
-export CFLAGS="$CFLAGS -DTIZEN_ENGINEER_MODE"
-export CXXFLAGS="$CXXFLAGS -DTIZEN_ENGINEER_MODE"
-export FFLAGS="$FFLAGS -DTIZEN_ENGINEER_MODE"
+%if 0%{?sec_build_binary_debug_enable}
+export CFLAGS="$CFLAGS -DTIZEN_DEBUG_ENABLE"
+export CXXFLAGS="$CXXFLAGS -DTIZEN_DEBUG_ENABLE"
+export FFLAGS="$FFLAGS -DTIZEN_DEBUG_ENABLE"
 %endif
 cmake . -DCMAKE_INSTALL_PREFIX=%{_prefix}
 
@@ -50,30 +50,23 @@ rm -rf %{buildroot}
 mkdir -p %{buildroot}/usr/share/license
 install LICENSE %{buildroot}/usr/share/license/%{name}
 
+mkdir -p %{buildroot}/opt/dbspace
+sqlite3 %{buildroot}/opt/dbspace/.rua.db < %{buildroot}/opt/share/rua_db.sql
+rm -rf %{buildroot}/opt/share/rua_db.sql
+
 %post
 /sbin/ldconfig
-mkdir -p /opt/dbspace/
-sqlite3 /opt/dbspace/.rua.db < /opt/share/rua_db.sql
-rm -rf /opt/share/rua_db.sql
-chown 0:5000 /opt/dbspace/.rua.db
-chown 0:5000 /opt/dbspace/.rua.db-journal
-chmod 660 /opt/dbspace/.rua.db
-chmod 660 /opt/dbspace/.rua.db-journal
-chsmack -a rua::db /opt/dbspace/.rua.db
-chsmack -a rua::db /opt/dbspace/.rua.db-journal
 
 %postun -p /sbin/ldconfig
-
 
 
 %files
 %manifest librua.manifest
 %defattr(-,root,root,-)
-%config(missingok) /opt/share/rua_db.sql
 /usr/lib/librua.so.*
 /usr/share/license/%{name}
-
-
+%attr(660,root,app) /opt/dbspace/.rua.db
+%attr(660,root,app) /opt/dbspace/.rua.db-journal
 
 %files devel
 %defattr(-,root,root,-)

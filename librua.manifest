@@ -11,5 +11,7 @@
 	<assign>
 		<filesystem path="/usr/lib/librua.so.0" label="_"/>
 		<filesystem path="/usr/lib/librua.so.0.1.0" label="_"/>
+		<filesystem path="/opt/dbspace/.rua.db" label="rua::db"/>
+		<filesystem path="/opt/dbspace/.rua.db-journal" label="rua::db"/>
 	</assign>
 </manifest>
