@@ -22,6 +22,13 @@
 
 #include <stdio.h>
 #include <sys/time.h>
+#include <dlog.h>
+
+#ifdef LOG_TAG
+#undef LOG_TAG
+#endif
+
+#define LOG_TAG "RUA_PERF"
 
 unsigned int _perf_measure_start(const char *tag, char *func_name, int line)
 {
@@ -34,7 +41,7 @@ unsigned int _perf_measure_start(const char *tag, char *func_name, int line)
 	gettimeofday(&t, NULL);
 	ts_start = t.tv_sec * 1000000UL + t.tv_usec;
 
-	printf("### START [%s:%d] timestamp(%u)\n", func_name, line, ts_start);
+	SECURE_LOGD("### START [%s:%d] timestamp(%u)\n", func_name, line, ts_start);
 
 	return ts_start;
 }
@@ -52,10 +59,10 @@ unsigned int _perf_measure_end(const char *tag, unsigned int ts_start,
 	if (ts_start)
 		elapsed_time = ts_end - ts_start;
 
-	printf("### END [%s:%d] timestamp(%u)\n", func_name, line, ts_end);
+	SECURE_LOGD("### END [%s:%d] timestamp(%u)\n", func_name, line, ts_end);
 
 	if (elapsed_time)
-		printf("### ELAPSED [%s:%d] timestamp(%u)\n", func_name, line,
+		SECURE_LOGD("### ELAPSED [%s:%d] timestamp(%u)\n", func_name, line,
 			elapsed_time);
 
 	return ts_end;

@@ -1,0 +1,10 @@
+/unit/utc_ApplicationFW_rua_clear_history_func
+/unit/utc_ApplicationFW_rua_init_func
+/unit/utc_ApplicationFW_rua_fini_func
+/unit/utc_ApplicationFW_rua_delete_history_with_pkgname_func
+/unit/utc_ApplicationFW_rua_add_history_func
+/unit/utc_ApplicationFW_rua_delete_history_with_apppath_func
+/unit/utc_ApplicationFW_rua_is_latest_app_func
+/unit/utc_ApplicationFW_rua_history_load_db_func
+/unit/utc_ApplicationFW_rua_history_unload_db_func
+/unit/utc_ApplicationFW_rua_history_get_rec_func
