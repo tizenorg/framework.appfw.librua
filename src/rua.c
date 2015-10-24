@@ -184,25 +184,25 @@ int rua_add_history(struct rua_rec *rec)
 	if (_db == NULL) {
 		LOGE("rua is not initialized");
 		return -1;
-	}	
+	}
 
 	if (rec == NULL) {
 		LOGE("input param is null");
 		return -1;
 	}
 
-	if(rec->pkg_name == NULL) {
+	if (rec->pkg_name == NULL) {
 		LOGE("pkg name is null");
 		return -1;
 	}
 
-	if(rec->app_path == NULL) {
+	if (rec->app_path == NULL) {
 		LOGE("app path is null");
 		return -1;
 	}
 
 	sqlite3_snprintf(QUERY_MAXLEN, query,
-		"REPLACE INTO %s(pkg_name,app_path,arg,launch_time) VALUES (?,?,?,?)",
+		"INSERT OR REPLACE INTO %s (pkg_name,app_path,arg,launch_time) VALUES (?,?,?,?)",
 		RUA_HISTORY);
 
 	r = sqlite3_prepare(_db, query, sizeof(query), &stmt, NULL);

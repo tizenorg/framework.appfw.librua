@@ -31,6 +31,16 @@ arg TEXT, \
 launch_time INTEGER \
 );"
 
+
+#define CREATE_RUA_STAT_TABLE " \
+CREATE TABLE if not exists rua_panel_stat ( \
+caller_panel TEXT NOT NULL, \
+rua_stat_tag TEXT NOT NULL, \
+score INTEGER DEFAULT 0, \
+PRIMARY KEY(rua_stat_tag, caller_panel) \
+);"
+
+
 /* table index */
 enum {
 	RUA_COL_ID = 0x00,
@@ -39,4 +49,13 @@ enum {
 	RUA_COL_ARG,
 	RUA_COL_LAUNCHTIME
 };
+
+enum {
+	RUA_STAT_COL_CALLER_PANEL = 0x00,
+	RUA_STAT_COL_RUA_STAT_TAG,
+	RUA_SATA_COL_SCORE
+};
+
+
+
 #endif				/* __RUA_SCHEMA_H__ */

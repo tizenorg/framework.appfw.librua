@@ -52,21 +52,22 @@ install LICENSE %{buildroot}/usr/share/license/%{name}
 
 mkdir -p %{buildroot}/opt/dbspace
 sqlite3 %{buildroot}/opt/dbspace/.rua.db < %{buildroot}/opt/share/rua_db.sql
+sqlite3 %{buildroot}/opt/dbspace/.rua_stat.db < %{buildroot}/opt/share/rua_stat_db.sql
 rm -rf %{buildroot}/opt/share/rua_db.sql
+rm -rf %{buildroot}/opt/share/rua_stat_db.sql
 
 %post
 /sbin/ldconfig
 
 %postun -p /sbin/ldconfig
 
-
 %files
 %manifest librua.manifest
 %defattr(-,root,root,-)
 /usr/lib/librua.so.*
 /usr/share/license/%{name}
-%attr(660,root,app) /opt/dbspace/.rua.db
-%attr(660,root,app) /opt/dbspace/.rua.db-journal
+%attr(660,root,app) /opt/dbspace/.rua.db*
+%attr(660,root,app) /opt/dbspace/.rua_stat.db*
 
 %files devel
 %defattr(-,root,root,-)
